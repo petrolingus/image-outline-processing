@@ -1,8 +1,17 @@
 package me.petrolingus.iop;
 
+import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.*;
 import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.util.FastMath;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class Controller {
 
@@ -35,6 +44,21 @@ public class Controller {
 
         imageView2.setImage(getImageFromPixels(result));
 
+        save("234234432", getImageFromPixels(result));
+    }
+
+    private void save(String name, Image img) {
+
+//        File outputFile = new File("C:\\samples\\" + name + ".jpg");
+        File outputFile = new File(name + ".jpg");
+        BufferedImage bImage = SwingFXUtils.fromFXImage(img, null);
+        try {
+            ImageIO.write(bImage, "jpg", outputFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
     }
 
     private double[][] outline1(double[][] brightness) {
@@ -66,7 +90,7 @@ public class Controller {
 
         double[][] mask = new double[][] {
                 {-1, -1, -1},
-                {-1, 9, -1},
+                {-1, 8, -1},
                 {-1, -1, -1}
         };
 
