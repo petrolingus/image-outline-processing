@@ -9,15 +9,15 @@ public class ImageFourier {
 
     public static final FastFourierTransformer fft = new FastFourierTransformer(DftNormalization.STANDARD);
 
-    public static Complex[][] fft(double[][] pixels) {
+    public static Complex[][] fft(double[][] image) {
 
-        int w = pixels[0].length;
-        int h = pixels.length;
+        int w = image[0].length;
+        int h = image.length;
 
         Complex[][] temp = new Complex[h][w];
         for (int i = 0; i < h; i++) {
             for (int j = 0; j < w; j++) {
-                temp[i][j] = new Complex(pixels[i][j]);
+                temp[i][j] = new Complex(image[i][j]);
             }
         }
 
