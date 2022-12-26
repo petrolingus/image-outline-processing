@@ -1,15 +1,9 @@
 package me.petrolingus.iop;
 
-import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.control.Slider;
+import javafx.scene.control.TextField;
 import javafx.scene.image.*;
-import org.apache.commons.math3.analysis.function.Gaussian;
-import org.apache.commons.math3.complex.Complex;
-import org.apache.commons.math3.util.FastMath;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 public class Controller {
@@ -17,207 +11,95 @@ public class Controller {
     public ImageView imageView;
     public ImageView imageView2;
 
-    double[][] h12 = new double[][] {
-            {0, -1, 0},
-            {-1, 4, -1},
-            {0, -1, 0}
-    };
+    public TextField h00;
+    public TextField h01;
+    public TextField h02;
+    public TextField h10;
+    public TextField h11;
+    public TextField h12;
+    public TextField h20;
+    public TextField h21;
+    public TextField h22;
 
-    double[][] h13 = new double[][] {
-            {-1, -1, -1},
-            {-1, 8, -1},
-            {-1, -1, -1}
-    };
+    public Slider radiusSlider;
+    public Slider mixingSlider;
 
-    double[][] h14 = new double[][] {
-            {1, -2, 1},
-            {-2, 4, -2},
-            {1, -2, 1}
-    };
-
-    double[][] h1 = new double[][] {
-            {0, -1, 0},
-            {-1, 5, -1},
-            {0, -1, 0}
-    };
-
-    double[][] h2 = new double[][] {
-            {-1, -1, -1},
-            {-1, 9, -1},
-            {-1, -1, -1}
-    };
-
-    double[][] h3 = new double[][] {
-            {1, -2, -1},
-            {-2, 5, -2},
-            {1, -2, 1}
-    };
-
-    List<double[][]> masks = List.of(h1, h2, h3, h12, h13, h14);
-    List<String> maskNames = List.of("h1", "h2", "h3", "h12", "h13", "h14");
+    double[][] brightness;
+    double[][] result;
+    String method = null;
 
     public void initialize() {
 
-        Image image = new Image("/rose.jpeg");
-        imageView.setImage(image);
-        PixelReader pixelReader = image.getPixelReader();
+        Image image = new Image("/cartoon.jpg");
 
-        double[][] brightness = new double[512][512];
+        int width = (int) image.getWidth();
+        int height = (int) image.getHeight();
+        brightness = new double[width][height];
+
+        PixelReader pixelReader = image.getPixelReader();
         for (int i = 0; i < 512; i++) {
             for (int j = 0; j < 512; j++) {
                 brightness[i][j] = pixelReader.getColor(j, i).getBrightness();
             }
         }
 
-        generateLinearSamples(brightness);
-        generateFourierSamples(brightness);
-
-        System.out.println("Done!");
+        imageView.setImage(getImageFromPixels(brightness));
     }
 
-    private void generateLinearSamples(double[][] brightness) {
-        for (int s = 0; s < 2; s++) {
-            for (int m = 3; m < 6; m++) {
-                for (int t = 0; t < 3; t++) {
-                    double c = 0.6 + t * 0.1;
-                    double[][] outline1 = linearOutline(brightness, masks.get(m));
-                    double[][] smooth = smooth(brightness);
-                    double[][] result = new double[512][512];
-                    for (int i = 0; i < 512; i++) {
-                        for (int j = 0; j < 512; j++) {
-                            if (s == 0) {
-                                result[i][j] = c * brightness[i][j] + (1.0 - c) * outline1[i][j];
-                            } else {
-                                result[i][j] = c * smooth[i][j] + (1.0 - c) * outline1[i][j];
-                            }
-                        }
-                    }
-                    if (s == 0) {
-                        save("linear-" + maskNames.get(m) + "-" + c, getImageFromPixels(result));
-                    } else {
-                        save("smooth-linear-" + maskNames.get(m) + "-" + c, getImageFromPixels(result));
-                    }
-                }
-            }
-        }
-    }
+    public void onTimeProcessing() {
 
-    private void generateFourierSamples(double[][] brightness) {
+        method = "linear";
 
-        for (int t = 0; t < 3; t++) {
-            double c = 0.6 + t * 0.1;
-            for (int rr = 50; rr < 250; rr += 50) {
-                double[][] contour = fourierOutline(brightness, rr, false);
-//                double[][] smooth = fourierOutline(brightness, rr, true);
-                double[][] result = new double[512][512];
-                for (int i = 0; i < 512; i++) {
-                    for (int j = 0; j < 512; j++) {
-                        result[i][j] = c * brightness[i][j] + (1.0 - c) * contour[i][j];
-                    }
-                }
-                save("fourier-r" + rr + "-" + c, getImageFromPixels(result));
-            }
-        }
-
-    }
-
-    private void save(String name, Image img) {
-        File outputFile = new File("C:\\Users\\petro\\Desktop\\samples\\" + name + ".png");
-        BufferedImage bImage = SwingFXUtils.fromFXImage(img, null);
-        try {
-            ImageIO.write(bImage, "png", outputFile);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private double[][] fourierOutline(double[][] brightness, double rr, boolean isSmooth) {
-
-        Gaussian gaussian = new Gaussian(1.0, 0, rr/2);
-
-        Complex[][] spectrum = swap(ImageFourier.fft(brightness));
-        for (int i = 0; i < 512; i++) {
-            for (int j = 0; j < 512; j++) {
-                double dx = (double) j - 256;
-                double dy = (double) i - 256;
-                double r = FastMath.sqrt(dx * dx + dy * dy);
-                if (isSmooth) {
-                    spectrum[i][j] = spectrum[i][j].multiply(gaussian.value(r));
-                } else {
-                    spectrum[i][j] = spectrum[i][j].multiply(1.0 - gaussian.value(r));
-                }
-            }
-        }
-        Complex[][] rev = ImageFourier.ifft(spectrum);
-
-        double[][] result = new double[512][512];
-        for (int i = 0; i < 512; i++) {
-            for (int j = 0; j < 512; j++) {
-                result[i][j] = rev[i][j].abs();
-            }
-        }
-
-        return normalize(result);
-    }
-
-    private double[][] linearOutline(double[][] brightness, double[][] mask) {
-
-        double[][] result = new double[512][512];
-        for (int i = 1; i < 511; i++) {
-            for (int j = 1; j < 511; j++) {
-
-                double m00 = brightness[i - 1][j - 1] * mask[0][0];
-                double m01 = brightness[i - 1][j] * mask[0][1];
-                double m02 = brightness[i - 1][j + 1] * mask[0][2];
-
-                double m10 = brightness[i][j - 1] * mask[1][0];
-                double m11 = brightness[i][j] * mask[1][1];
-                double m12 = brightness[i][j + 1] * mask[1][2];
-
-                double m20 = brightness[i + 1][j - 1] * mask[2][0];
-                double m21 = brightness[i + 1][j] * mask[2][1];
-                double m22 = brightness[i + 1][j + 1] * mask[2][2];
-
-                double sum = m00 + m01 + m02 + m10 + m11 + m12 + m20 + m21 + m22;
-
-                result[i][j] = sum;
-            }
-        }
-
-        return normalize2(result);
-    }
-
-    private double[][] smooth(double[][] brightness) {
+        double h00 = Double.parseDouble(this.h00.getText());
+        double h01 = Double.parseDouble(this.h01.getText());
+        double h02 = Double.parseDouble(this.h02.getText());
+        double h10 = Double.parseDouble(this.h10.getText());
+        double h11 = Double.parseDouble(this.h11.getText());
+        double h12 = Double.parseDouble(this.h12.getText());
+        double h20 = Double.parseDouble(this.h20.getText());
+        double h21 = Double.parseDouble(this.h21.getText());
+        double h22 = Double.parseDouble(this.h22.getText());
 
         double[][] mask = new double[][] {
-                {1, 1, 1},
-                {1, 8, 1},
-                {1, 1, 1}
+                {h00, h01, h02},
+                {h10, h11, h12},
+                {h20, h21, h22}
         };
 
-        double[][] result = new double[512][512];
-        for (int i = 1; i < 511; i++) {
-            for (int j = 1; j < 511; j++) {
-
+        double[][] processed = new double[brightness.length][brightness.length];
+        for (int i = 1; i < brightness.length - 1; i++) {
+            for (int j = 1; j < brightness.length - 1; j++) {
                 double m00 = brightness[i - 1][j - 1] * mask[0][0];
                 double m01 = brightness[i - 1][j] * mask[0][1];
                 double m02 = brightness[i - 1][j + 1] * mask[0][2];
-
                 double m10 = brightness[i][j - 1] * mask[1][0];
                 double m11 = brightness[i][j] * mask[1][1];
                 double m12 = brightness[i][j + 1] * mask[1][2];
-
                 double m20 = brightness[i + 1][j - 1] * mask[2][0];
                 double m21 = brightness[i + 1][j] * mask[2][1];
                 double m22 = brightness[i + 1][j + 1] * mask[2][2];
-
-                double sum = m00 + m01 + m02 + m10 + m11 + m12 + m20 + m21 + m22;
-
-                result[i][j] = sum;
+                processed[i][j] = m00 + m01 + m02 + m10 + m11 + m12 + m20 + m21 + m22;
             }
         }
 
-        return normalize(result);
+        double mixingRatio = mixingSlider.getValue();
+
+        result = new double[brightness.length][brightness.length];
+        for (int i = 0; i < brightness.length; i++) {
+            for (int j = 0; j < brightness.length; j++) {
+                result[i][j] = mixingRatio * brightness[i][j] + (1.0 - mixingRatio) * processed[i][j];
+            }
+        }
+
+        imageView2.setImage(getImageFromPixels(normalize2(result)));
+    }
+
+    public void onFrequencyProcessing() {
+
+    }
+
+    public void onSave() {
+
     }
 
     private Image getImageFromPixels(double[][] pixels) {
@@ -273,35 +155,4 @@ public class Controller {
         return result;
     }
 
-    public static double[][] swap(double[][] matrix) {
-        int w = matrix[0].length;
-        int h = matrix.length;
-        int hw = w / 2;
-        int hh = h / 2;
-        double[][] result = new double[h][w];
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                int x = (j < hw) ? j + hw : j - hw;
-                int y = (i < hh) ? i + h : i - hh;
-                result[i][j] = matrix[y][x];
-            }
-        }
-        return result;
-    }
-
-    public static Complex[][] swap(Complex[][] matrix) {
-        int w = matrix[0].length;
-        int h = matrix.length;
-        int hw = w / 2;
-        int hh = h / 2;
-        Complex[][] result = new Complex[h][w];
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                int x = (j < hw) ? j + hw : j - hw;
-                int y = (i < hh) ? i + hh : i - hh;
-                result[i][j] = matrix[y][x];
-            }
-        }
-        return result;
-    }
 }
