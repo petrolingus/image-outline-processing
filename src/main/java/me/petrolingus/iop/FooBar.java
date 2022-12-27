@@ -56,11 +56,11 @@ public class FooBar {
     List<double[][]> masks = List.of(h1, h2, h3, h12, h13, h14);
     List<String> maskNames = List.of("h1", "h2", "h3", "h12", "h13", "h14");
 
-    private void generateLinearSamples(double[][] brightness) {
+    public void generateLinearSamples(double[][] brightness) {
         for (int s = 0; s < 2; s++) {
-            for (int m = 3; m < 6; m++) {
+            for (int m = 0; m < 6; m++) {
                 for (int t = 0; t < 3; t++) {
-                    double c = 0.6 + t * 0.1;
+                    double c = (m < 3) ? 0.1 + t * 0.4 : 0.6 + t * 0.1;
                     double[][] outline1 = linearOutline(brightness, masks.get(m));
                     double[][] smooth = smooth(brightness);
                     double[][] result = new double[512][512];
@@ -83,7 +83,7 @@ public class FooBar {
         }
     }
 
-    private void generateFourierSamples(double[][] brightness) {
+    public void generateFourierSamples(double[][] brightness) {
 
         for (int t = 0; t < 3; t++) {
             double c = 0.6 + t * 0.1;

@@ -30,7 +30,7 @@ public class Controller {
 
     public void initialize() {
 
-        Image image = new Image("/cartoon.jpg");
+        Image image = new Image("/forest.jpg");
 
         int width = (int) image.getWidth();
         int height = (int) image.getHeight();
@@ -44,6 +44,10 @@ public class Controller {
         }
 
         imageView.setImage(getImageFromPixels(brightness));
+
+        FooBar fooBar = new FooBar();
+        fooBar.generateLinearSamples(brightness);
+        fooBar.generateFourierSamples(brightness);
     }
 
     public void onTimeProcessing() {
